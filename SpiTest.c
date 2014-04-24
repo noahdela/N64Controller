@@ -19,6 +19,7 @@ int alt = 0;
 
 int main (void)
 {
+	DDRC = 0b11111111; //All port c set as output
 	initTimer0();
     /*SPI_MasterInit();
 	while(1)
