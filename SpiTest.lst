@@ -1,0 +1,145 @@
+   1               		.file	"SpiTest.c"
+   2               	__SREG__ = 0x3f
+   3               	__SP_H__ = 0x3e
+   4               	__SP_L__ = 0x3d
+   5               	__CCP__  = 0x34
+   6               	__tmp_reg__ = 0
+   7               	__zero_reg__ = 1
+  15               	.Ltext0:
+  16               	.global	SPI_MasterInit
+  18               	SPI_MasterInit:
+  19               	.LFB3:
+  20               	.LM1:
+  21               	/* prologue: function */
+  22               	/* frame size = 0 */
+  23               	.LM2:
+  24 0000 84B1      		in r24,36-32
+  25 0002 8C62      		ori r24,lo8(44)
+  26 0004 84B9      		out 36-32,r24
+  27               	.LM3:
+  28 0006 2498      		cbi 36-32,4
+  29               	.LM4:
+  30 0008 8CB5      		in r24,76-32
+  31 000a 8061      		ori r24,lo8(16)
+  32 000c 8CBD      		out 76-32,r24
+  33               	.LM5:
+  34 000e 8CB5      		in r24,76-32
+  35 0010 8360      		ori r24,lo8(3)
+  36 0012 8CBD      		out 76-32,r24
+  37               	.LM6:
+  38 0014 8CB5      		in r24,76-32
+  39 0016 8064      		ori r24,lo8(64)
+  40 0018 8CBD      		out 76-32,r24
+  41               	/* epilogue start */
+  42               	.LM7:
+  43 001a 0895      		ret
+  44               	.LFE3:
+  46               	.global	SPI_MasterTransmit
+  48               	SPI_MasterTransmit:
+  49               	.LFB4:
+  50               	.LM8:
+  51               	.LVL0:
+  52               	/* prologue: function */
+  53               	/* frame size = 0 */
+  54               	.LM9:
+  55 001c 8EBD      		out 78-32,r24
+  56               	.L4:
+  57               	.LM10:
+  58 001e 0DB4      		in __tmp_reg__,77-32
+  59 0020 07FE      		sbrs __tmp_reg__,7
+  60 0022 00C0      		rjmp .L4
+  61               	/* epilogue start */
+  62               	.LM11:
+  63 0024 0895      		ret
+  64               	.LFE4:
+  66               	.global	delay_ms
+  68               	delay_ms:
+  69               	.LFB5:
+  70               	.LM12:
+  71               	.LVL1:
+  72               	/* prologue: function */
+  73               	/* frame size = 0 */
+  74 0026 00C0      		rjmp .L8
+  75               	.LVL2:
+  76               	.L10:
+  77               	.LM13:
+  78 0028 20E0      		ldi r18,lo8(0)
+  79               	.L9:
+  80               	.LM14:
+  81               	/* #APP */
+  82               	 ;  59 "SpiTest.c" 1
+  83 002a 0000      		nop
+  84               	 ;  0 "" 2
+  85               	 ;  59 "SpiTest.c" 1
+  86 002c 0000      		nop
+  87               	 ;  0 "" 2
+  88               	 ;  59 "SpiTest.c" 1
+  89 002e 0000      		nop
+  90               	 ;  0 "" 2
+  91               	 ;  59 "SpiTest.c" 1
+  92 0030 0000      		nop
+  93               	 ;  0 "" 2
+  94               	 ;  59 "SpiTest.c" 1
+  95 0032 0000      		nop
+  96               	 ;  0 "" 2
+  97               	 ;  59 "SpiTest.c" 1
+  98 0034 0000      		nop
+  99               	 ;  0 "" 2
+ 100               	.LM15:
+ 101               	/* #NOAPP */
+ 102 0036 2F5F      		subi r18,lo8(-(1))
+ 103 0038 2A35      		cpi r18,lo8(90)
+ 104 003a 01F4      		brne .L9
+ 105               	.LM16:
+ 106 003c 0197      		sbiw r24,1
+ 107               	.LVL3:
+ 108               	.L8:
+ 109 003e 0097      		sbiw r24,0
+ 110 0040 01F4      		brne .L10
+ 111               	/* epilogue start */
+ 112               	.LM17:
+ 113 0042 0895      		ret
+ 114               	.LFE5:
+ 116               	.global	main
+ 118               	main:
+ 119               	.LFB2:
+ 120               	.LM18:
+ 121 0044 1F93      		push r17
+ 122               	/* prologue: function */
+ 123               	/* frame size = 0 */
+ 124               	.LM19:
+ 125 0046 0E94 0000 		call SPI_MasterInit
+ 126               	.LBB4:
+ 127               	.LBB5:
+ 128               	.LM20:
+ 129 004a 1FE0      		ldi r17,lo8(15)
+ 130               	.L15:
+ 131 004c 1EBD      		out 78-32,r17
+ 132               	.L14:
+ 133               	.LM21:
+ 134 004e 0DB4      		in __tmp_reg__,77-32
+ 135 0050 07FE      		sbrs __tmp_reg__,7
+ 136 0052 00C0      		rjmp .L14
+ 137               	.LBE5:
+ 138               	.LBE4:
+ 139               	.LM22:
+ 140 0054 84EF      		ldi r24,lo8(500)
+ 141 0056 91E0      		ldi r25,hi8(500)
+ 142 0058 0E94 0000 		call delay_ms
+ 143 005c 00C0      		rjmp .L15
+ 144               	.LFE2:
+ 194               	.Letext0:
+DEFINED SYMBOLS
+                            *ABS*:00000000 SpiTest.c
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:2      *ABS*:0000003f __SREG__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:3      *ABS*:0000003e __SP_H__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:4      *ABS*:0000003d __SP_L__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:5      *ABS*:00000034 __CCP__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:6      *ABS*:00000000 __tmp_reg__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:7      *ABS*:00000001 __zero_reg__
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:18     .text:00000000 SPI_MasterInit
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:48     .text:0000001c SPI_MasterTransmit
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:68     .text:00000026 delay_ms
+C:\Users\Noah\AppData\Local\Temp/ccme3kg9.s:118    .text:00000044 main
+
+NO UNDEFINED SYMBOLS
