@@ -19,7 +19,8 @@
 void SPI_MasterInit(void);
 char WriteByteSPI(unsigned char cData);
 uint8_t GetReg(uint8_t reg);
-uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal);
+void WriteToNrf(uint8_t reg, uint8_t Package);
+//uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal);
 void initTimer0(void);
 //======================
 
@@ -81,7 +82,20 @@ uint8_t GetReg(uint8_t reg)
 	return reg;	// Return the read registry
 }
 
-/*****************nrf-setup***************************/ //Sets the nrf first by sending the register, then the value of the register.
+void WriteToNrf(uint8_t reg, uint8_t Package)
+{
+	//begin with a delay for timing purposes
+	_delay_us(10);	
+	PORTB &= ~(1 << 2);//CSN low
+	_delay_us(10);
+	WriteByteSPI(W_REGISTER + reg);	//R_Register = set nRF to reading mode, "reg" will be read back
+	_delay_us(10);
+	reg = WriteByteSPI(Package);//Send package to be written to "reg"
+	_delay_us(10);
+	PORTB |= (1 << 2);	//CSN back to high, nRF doing nothing
+}
+
+/*****************nrf-setup************************** //Sets the nrf first by sending the register, then the value of the register.
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal)	//takes in "ReadWrite" (W or R), "reg" (ett register), "*val" (an array) & "antVal" (number of values in val)
 {
 	cli();	//disable global interrupts
@@ -119,7 +133,7 @@ uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal
 	sei(); //enable global interrupts
 	
 	return ret;	//returns an array
-}
+}*/
 
 // this code sets up timer1 for a .25s interrupt @ 16Mhz Clock (mode 4)
 void initTimer0(void)
