@@ -20,6 +20,7 @@ void SPI_MasterInit(void);
 char WriteByteSPI(unsigned char cData);
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal);
 void nrf24L01_init(void);
+void INT0_interrupt_init(void);
 //uint8_t GetReg(uint8_t reg);
 //void WriteToNrf(uint8_t reg, uint8_t Package);
 //void initTimer0(void);
@@ -66,6 +67,17 @@ char WriteByteSPI(unsigned char cData)
 		;
 	return SPDR;//return what's recieved to the nRF
 }
+
+void INT0_interrupt_init(void)	
+{
+	DDRD &= ~(1 << DDD2);	//Set pin 4 as input (INT0 pin)
+	
+	EICRA |=  (1 << ISC01);// INT0 falling edge	PD2
+	EICRA  &=  ~(1 << ISC00);// INT0 falling edge	PD2
+ 
+	EIMSK |=  (1 << INT0);	//enable int0
+  	//sei();
+} 
 
 /*****************nrf-setup**************************///Sets the nrf first by sending the register, then the value of the register.
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal)	//takes in "ReadWrite" (W or R), "reg" (ett register), "*val" (an array) & "antVal" (number of values in val)
@@ -187,10 +199,13 @@ void nrf24L01_init(void)
 //when receive_payload received data NOTE: when Mask_Max_rt is set in the 
 //config register so it will not go off when MAX_RT is was reached on the mailing lodge nmisslyckats!
 
+//vector that is triggered when transmit_payload managed to send or when 
+//receive_payload received data NOTE: when Mask_Max_rt is set in the config register 
+//so it will not go off when MAX_RT is was reached on the mailing lodge nmisslyckats!
 ISR(INT0_vect)
 {
 	cli();	//Disable global interrupt
-	PORTB &= ~(1 << 1);//CE back to low
+	PORTB &= ~(1 << 1);//CE back to low-"stop listening/transmitting"
 	
 	PORTC |= (1 << 5);//turn LED on if status is read //led on
 	_delay_ms(500);
