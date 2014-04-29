@@ -21,6 +21,8 @@ char WriteByteSPI(unsigned char cData);
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal);
 void nrf24L01_init(void);
 void INT0_interrupt_init(void);
+void receive_payload(void);
+void transmit_payload(uint8_t * W_buff);
 //uint8_t GetReg(uint8_t reg);
 //void WriteToNrf(uint8_t reg, uint8_t Package);
 //void initTimer0(void);
@@ -28,16 +30,18 @@ void INT0_interrupt_init(void);
 
 int main (void)
 {
-	DDRC |= (1 << 5); //port c bit 5 set as output
-	//initTimer0();
+	DDRC |= (1 << 5); //port c bit 5 set as output so we can use the LED as an indicator
+	SPI_MasterInit(); //initialize SPI 
+	INT0_interrupt_init();//INT0 interrupt is triggered when CE pin switches, signals data transfer to nRF
+	nrf24L01_init();//initalizes the nrF module to our desired specifications(channel,power,data width,TX/RX)
 	
-    SPI_MasterInit();
+	PORTC |= (1 << 5);//turn LED on
+	_delay_ms(500);//this is to test LED operation
+	PORTC &= ~(1 << 5);//turn LED back off
+	
 	while(1)
 	{
-		if(GetReg(STATUS)==0x0E)
-		{
-			//PORTC |= (1 << 5);//turn LED on if status is read
-		}
+		//let interrupts do all the work
 	}
 
     return(0);
@@ -127,13 +131,16 @@ void nrf24L01_init(void)
 	
 	uint8_t val[5];	//an array of integers that sends values to WriteToNrf function
  
-	//EN_AA - (auto-acknowledgments) - The transmitter will response of the receiver to-package arrived(Need only be enablad the transmitter!)
+	//EN_AA - (auto-acknowledgments) - The transmitter will response of the receiver to-package arrived
+	//(Need only be enablad the transmitter!)
 	//Requires the transmitter also has sat SAME RF_Adress on its receiver channel below example: RX_ADDR_P0 = TX_ADDR
 	val[0]=0x01;//gives first integern in the array "choice" one value: 0x01 = EN_AA on pipe P0.
 	WriteToNrf(W, EN_AA, val, 1);//W ='ll write / modify anything in the NRF, EN_AA = which register shall be amended, val = an array of 1 to 32 values ??to be written to the register, 1 = number of values be read out of "choice" array.
 	
 	//SETUP_RETR (the setup for "EN_AA")
-	val[0]=0x2F;//0b0010 00011 "2" sets it up to 750uS delay between every retry (at least 500us at 250kbps and if payload >5bytes in 1Mbps, and if payload >15byte in 2Mbps) "F" is number of retries (1-15, now 15)
+	val[0]=0x2F;//0b0010 00011 "2" sets it up to 750uS delay between every retry 
+	//(at least 500us at 250kbps and if payload >5bytes in 1Mbps, and if payload >15byte in 2Mbps)
+    // "F" is number of retries (1-15, now 15)
 	WriteToNrf(W, SETUP_RETR, val, 1);
 	
 	//Selects which / what data pipes (0-5) that should be running.
@@ -192,7 +199,39 @@ void nrf24L01_init(void)
  
 	//sei();	
 }
-
+/**************************************************************************************************************/
+//receive data
+void receive_payload(void)
+{
+	sei();		//Enable global interrupt
+	
+	SETBIT(PORTB, 1);	//CE goes high, "listening"
+	_delay_ms(1000);	//Listen for 1 second, interrupt int0 executes
+	CLEARBIT(PORTB, 1); //CE goes low, "stop listening"
+	
+	cli();	//Disable global interrupt
+}
+ 
+//Send data
+void transmit_payload(uint8_t * W_buff)
+{
+//send 0xE1 which flushes the registry of old data which should not be waiting to be sent when you want to send
+// the new data! R stands for W_REGISTER not be added. sends no command efterråt because it is 
+//not needed! W_buff [] is just there because an array has to be there ..
+	WriteToNrf(R, FLUSH_TX, W_buff, 0);
+	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf-one(cannot read w_tx_payload registry!)
+	
+	sei();	//enable global interrupts
+	//USART_Transmit(GetReg(STATUS));
+ 
+	_delay_ms(10);		//necessary delay
+	SETBIT(PORTB, 1);	//CE high, send data, int0 interrupt
+	_delay_us(20);		//at least 10us needed
+	CLEARBIT(PORTB, 1);	//CE low
+	_delay_ms(10);		//necessary delay
+ 
+	//cli();	//Disable global interrupt.. 
+}
 /**************************************************************************************************************/
 
 //vector that is triggered when transmit_payload managed to send or 
