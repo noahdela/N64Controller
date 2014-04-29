@@ -205,9 +205,9 @@ void receive_payload(void)
 {
 	sei();		//Enable global interrupt
 	
-	SETBIT(PORTB, 1);	//CE goes high, "listening"
+	PORTB |= (1 << 1);	//CE goes high, "listening"
 	_delay_ms(1000);	//Listen for 1 second, interrupt int0 executes
-	CLEARBIT(PORTB, 1); //CE goes low, "stop listening"
+	PORTB &= ~(1 << 1); //CE goes low, "stop listening"
 	
 	cli();	//Disable global interrupt
 }
@@ -225,9 +225,9 @@ void transmit_payload(uint8_t * W_buff)
 	//USART_Transmit(GetReg(STATUS));
  
 	_delay_ms(10);		//necessary delay
-	SETBIT(PORTB, 1);	//CE high, send data, int0 interrupt
+	PORTB |= (1 << 1);	//CE high, send data, int0 interrupt
 	_delay_us(20);		//at least 10us needed
-	CLEARBIT(PORTB, 1);	//CE low
+	PORTB &= ~(1 << 1);	//CE low
 	_delay_ms(10);		//necessary delay
  
 	//cli();	//Disable global interrupt.. 
@@ -264,6 +264,7 @@ ISR(INT0_vect)
 
 /***************************rest of code is not being used*************************************************/
 
+/*
 //Read a register on the nRF
 uint8_t GetReg(uint8_t reg)
 {	
@@ -328,3 +329,4 @@ void initTimer0(void)
     sei();
     // enable interrupts
 }
+*/
