@@ -37,8 +37,6 @@
 #
 # To rebuild project do "make clean" then "make all".
 #----------------------------------------------------------------------------
-
-
 # MCU name
 MCU = atmega328p
 
@@ -56,7 +54,7 @@ FORMAT = ihex
 
 
 # Target file name (without extension).
-TARGET = SpiTest
+TARGET = Transmitter
 
 
 # List C source files here. (C dependencies are automatically generated.)

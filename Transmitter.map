@@ -2,6 +2,8 @@ Archive member included because of file (symbol)
 
 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
                               c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o (exit)
+c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                              Transmitter.o (__do_clear_bss)
 
 Memory Configuration
 
@@ -18,7 +20,7 @@ Linker script and memory map
 
 Address of section .data set to 0x800100
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
-LOAD SpiTest.o
+LOAD Transmitter.o
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5\libm.a
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5\libc.a
@@ -114,7 +116,7 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 .rela.plt
  *(.rela.plt)
 
-.text           0x00000000       0xe2
+.text           0x00000000      0x3c4
  *(.vectors)
  .vectors       0x00000000       0x68 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
                 0x00000000                __vectors
@@ -152,6 +154,8 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
  *(.init3)
  *(.init3)
  *(.init4)
+ .init4         0x00000074       0x10 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                0x00000074                __do_clear_bss
  *(.init4)
  *(.init5)
  *(.init5)
@@ -162,50 +166,58 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
  *(.init8)
  *(.init8)
  *(.init9)
- .init9         0x00000074        0x8 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
+ .init9         0x00000084        0x8 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
  *(.init9)
  *(.text)
- .text          0x0000007c        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
-                0x0000007c                __vector_22
-                0x0000007c                __vector_1
-                0x0000007c                __vector_24
-                0x0000007c                __vector_12
-                0x0000007c                __bad_interrupt
-                0x0000007c                __vector_6
-                0x0000007c                __vector_3
-                0x0000007c                __vector_23
-                0x0000007c                __vector_25
-                0x0000007c                __vector_11
-                0x0000007c                __vector_13
-                0x0000007c                __vector_17
-                0x0000007c                __vector_19
-                0x0000007c                __vector_7
-                0x0000007c                __vector_5
-                0x0000007c                __vector_4
-                0x0000007c                __vector_9
-                0x0000007c                __vector_2
-                0x0000007c                __vector_21
-                0x0000007c                __vector_15
-                0x0000007c                __vector_8
-                0x0000007c                __vector_14
-                0x0000007c                __vector_10
-                0x0000007c                __vector_16
-                0x0000007c                __vector_18
-                0x0000007c                __vector_20
- .text          0x00000080       0x5e SpiTest.o
-                0x00000080                SPI_MasterInit
-                0x000000c4                main
-                0x000000a6                delay_ms
-                0x0000009c                SPI_MasterTransmit
- .text          0x000000de        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
-                0x000000de                . = ALIGN (0x2)
+ .text          0x0000008c        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
+                0x0000008c                __vector_22
+                0x0000008c                __vector_24
+                0x0000008c                __vector_12
+                0x0000008c                __bad_interrupt
+                0x0000008c                __vector_6
+                0x0000008c                __vector_3
+                0x0000008c                __vector_23
+                0x0000008c                __vector_25
+                0x0000008c                __vector_11
+                0x0000008c                __vector_13
+                0x0000008c                __vector_17
+                0x0000008c                __vector_19
+                0x0000008c                __vector_7
+                0x0000008c                __vector_5
+                0x0000008c                __vector_4
+                0x0000008c                __vector_9
+                0x0000008c                __vector_2
+                0x0000008c                __vector_21
+                0x0000008c                __vector_15
+                0x0000008c                __vector_8
+                0x0000008c                __vector_14
+                0x0000008c                __vector_10
+                0x0000008c                __vector_16
+                0x0000008c                __vector_18
+                0x0000008c                __vector_20
+ .text          0x00000090      0x330 Transmitter.o
+                0x00000344                __vector_1
+                0x000000d2                WriteToNrf
+                0x000000b0                WriteByteSPI
+                0x0000030e                reset
+                0x000000bc                INT0_interrupt_init
+                0x0000024c                receive_payload
+                0x0000038c                GetReg
+                0x00000268                transmit_payload
+                0x00000090                SPI_MasterInit
+                0x000002a6                main
+                0x00000150                nrf24L01_init
+ .text          0x000003c0        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .text          0x000003c0        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                0x000003c0                . = ALIGN (0x2)
  *(.text.*)
- .text.libgcc   0x000000de        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
-                0x000000de                . = ALIGN (0x2)
+ .text.libgcc   0x000003c0        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .text.libgcc   0x000003c0        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                0x000003c0                . = ALIGN (0x2)
  *(.fini9)
- .fini9         0x000000de        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
-                0x000000de                exit
-                0x000000de                _exit
+ .fini9         0x000003c0        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+                0x000003c0                exit
+                0x000003c0                _exit
  *(.fini9)
  *(.fini8)
  *(.fini8)
@@ -224,16 +236,17 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
  *(.fini1)
  *(.fini1)
  *(.fini0)
- .fini0         0x000000de        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .fini0         0x000003c0        0x4 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
  *(.fini0)
-                0x000000e2                _etext = .
+                0x000003c4                _etext = .
 
-.data           0x00800100        0x0 load address 0x000000e2
+.data           0x00800100        0x0 load address 0x000003c4
                 0x00800100                PROVIDE (__data_start, .)
  *(.data)
  .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
- .data          0x00800100        0x0 SpiTest.o
+ .data          0x00800100        0x0 Transmitter.o
  .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .data          0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
  *(.data*)
  *(.rodata)
  *(.rodata*)
@@ -242,24 +255,25 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
                 0x00800100                _edata = .
                 0x00800100                PROVIDE (__data_end, .)
 
-.bss            0x00800100        0x0
+.bss            0x00800100        0x5
                 0x00800100                PROVIDE (__bss_start, .)
  *(.bss)
  .bss           0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
- .bss           0x00800100        0x0 SpiTest.o
- .bss           0x00800100        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .bss           0x00800100        0x5 Transmitter.o
+ .bss           0x00800105        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
+ .bss           0x00800105        0x0 c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
  *(.bss*)
  *(COMMON)
-                0x00800100                PROVIDE (__bss_end, .)
-                0x000000e2                __data_load_start = LOADADDR (.data)
-                0x000000e2                __data_load_end = (__data_load_start + SIZEOF (.data))
+                0x00800105                PROVIDE (__bss_end, .)
+                0x000003c4                __data_load_start = LOADADDR (.data)
+                0x000003c4                __data_load_end = (__data_load_start + SIZEOF (.data))
 
-.noinit         0x00800100        0x0
-                0x00800100                PROVIDE (__noinit_start, .)
+.noinit         0x00800105        0x0
+                0x00800105                PROVIDE (__noinit_start, .)
  *(.noinit*)
-                0x00800100                PROVIDE (__noinit_end, .)
-                0x00800100                _end = .
-                0x00800100                PROVIDE (__heap_start, .)
+                0x00800105                PROVIDE (__noinit_end, .)
+                0x00800105                _end = .
+                0x00800105                PROVIDE (__heap_start, .)
 
 .eeprom         0x00810000        0x0
  *(.eeprom*)
@@ -313,54 +327,66 @@ LOAD c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a
 .debug_aranges  0x00000000       0x20
  *(.debug_aranges)
  .debug_aranges
-                0x00000000       0x20 SpiTest.o
+                0x00000000       0x20 Transmitter.o
 
 .debug_pubnames
-                0x00000000       0x52
+                0x00000000       0xc5
  *(.debug_pubnames)
  .debug_pubnames
-                0x00000000       0x52 SpiTest.o
+                0x00000000       0xc5 Transmitter.o
 
-.debug_info     0x00000000      0x130
+.debug_info     0x00000000      0x8aa
  *(.debug_info)
- .debug_info    0x00000000      0x130 SpiTest.o
+ .debug_info    0x00000000      0x8aa Transmitter.o
  *(.gnu.linkonce.wi.*)
 
-.debug_abbrev   0x00000000       0xf3
+.debug_abbrev   0x00000000      0x224
  *(.debug_abbrev)
- .debug_abbrev  0x00000000       0xf3 SpiTest.o
+ .debug_abbrev  0x00000000      0x224 Transmitter.o
 
-.debug_line     0x00000000      0x138
+.debug_line     0x00000000      0x62a
  *(.debug_line)
- .debug_line    0x00000000      0x138 SpiTest.o
+ .debug_line    0x00000000      0x62a Transmitter.o
 
-.debug_frame    0x00000000       0x50
+.debug_frame    0x00000000       0xc0
  *(.debug_frame)
- .debug_frame   0x00000000       0x50 SpiTest.o
+ .debug_frame   0x00000000       0xc0 Transmitter.o
 
-.debug_str      0x00000000       0xc3
+.debug_str      0x00000000      0x196
  *(.debug_str)
- .debug_str     0x00000000       0xc3 SpiTest.o
-                                 0xfc (size before relaxing)
+ .debug_str     0x00000000      0x196 Transmitter.o
+                                0x1cf (size before relaxing)
 
-.debug_loc
+.debug_loc      0x00000000      0x23e
  *(.debug_loc)
+ .debug_loc     0x00000000      0x23e Transmitter.o
 
 .debug_macinfo
  *(.debug_macinfo)
-OUTPUT(SpiTest.elf elf32-avr)
+OUTPUT(Transmitter.elf elf32-avr)
 LOAD linker stubs
+
+.debug_ranges   0x00000000       0xa8
+ .debug_ranges  0x00000000       0xa8 Transmitter.o
 
 Cross Reference Table
 
 Symbol                                            File
-SPI_MasterInit                                    SpiTest.o
-SPI_MasterTransmit                                SpiTest.o
+GetReg                                            Transmitter.o
+INT0_interrupt_init                               Transmitter.o
+SPI_MasterInit                                    Transmitter.o
+WriteByteSPI                                      Transmitter.o
+WriteToNrf                                        Transmitter.o
 __bad_interrupt                                   c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
+__bss_end                                         c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+__bss_start                                       c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+__do_clear_bss                                    c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_clear_bss.o)
+                                                  Transmitter.o
 __heap_end                                        c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __init                                            c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __stack                                           c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
-__vector_1                                        c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
+__vector_1                                        Transmitter.o
+                                                  c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __vector_10                                       c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __vector_11                                       c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __vector_12                                       c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
@@ -388,8 +414,11 @@ __vector_9                                        c:/winavr-20100110/bin/../lib/
 __vector_default                                  c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 __vectors                                         c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
 _exit                                             c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
-delay_ms                                          SpiTest.o
 exit                                              c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/avr5\libgcc.a(_exit.o)
                                                   c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
-main                                              SpiTest.o
+main                                              Transmitter.o
                                                   c:/winavr-20100110/bin/../lib/gcc/avr/4.3.3/../../../../avr/lib/avr5/crtm328p.o
+nrf24L01_init                                     Transmitter.o
+receive_payload                                   Transmitter.o
+reset                                             Transmitter.o
+transmit_payload                                  Transmitter.o

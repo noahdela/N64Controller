@@ -12,7 +12,7 @@
 
 #include "nRF24L01.h"
 
-#define dataLen 3  //length of data packet sent / received
+#define dataLen 5  //length of data packet sent / received # of bytes
 
 //Define functions
 //======================
@@ -21,9 +21,10 @@ char WriteByteSPI(unsigned char cData);
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal);
 void nrf24L01_init(void);
 void INT0_interrupt_init(void);
+void reset(void);
 void receive_payload(void);
 void transmit_payload(uint8_t * W_buff);
-//uint8_t GetReg(uint8_t reg);
+uint8_t GetReg(uint8_t reg);
 //void WriteToNrf(uint8_t reg, uint8_t Package);
 //void initTimer0(void);
 //======================
@@ -39,10 +40,26 @@ int main (void)
 	_delay_ms(500);//this is to test LED operation
 	PORTC &= ~(1 << 5);//turn LED back off
 	
+	uint8_t W_Buffer[5];
+	int i;
+	
+	for(i = 0; i < 5; i++)
+		{
+			W_Buffer[i] = 0x0F;
+		}
+	
 	while(1)
 	{
-		//let interrupts do all the work
+		transmit_payload(W_Buffer);//repeatedly send data to test if module works
+		_delay_ms(2000);//delay between each transmission
 	}
+	/* if nRF is in receiver mode
+	while(1)
+	{
+        reset();
+        receive_payload();
+	}
+	*/
 
     return(0);
 }
@@ -129,13 +146,12 @@ void nrf24L01_init(void)
 {
 	_delay_ms(100);	//allow radio to reach power down if shut down
 	
-	uint8_t val[5];	//an array of integers that sends values to WriteToNrf function
- 
-	//EN_AA - (auto-acknowledgments) - The transmitter will response of the receiver to-package arrived
-	//(Need only be enablad the transmitter!)
-	//Requires the transmitter also has sat SAME RF_Adress on its receiver channel below example: RX_ADDR_P0 = TX_ADDR
-	val[0]=0x01;//gives first integern in the array "choice" one value: 0x01 = EN_AA on pipe P0.
-	WriteToNrf(W, EN_AA, val, 1);//W ='ll write / modify anything in the NRF, EN_AA = which register shall be amended, val = an array of 1 to 32 values ??to be written to the register, 1 = number of values be read out of "choice" array.
+	uint8_t val[5];	//an array of integers to send to WriteToNrf function
+	
+	//EN_AA - (enable auto-acknowledgements) - transmitter gets automatic response from reciever on successful transmit
+	//only works if transmitter has identical rf address on its channel ex: RX_ADDR_P0 = TX_ADDR
+	val[0]=0x01;//gives first integer in the array "choice" one value: 0x01 = EN_AA on pipe P0.
+	WriteToNrf(W, EN_AA, val, 1);//W=write mode, EN_AA=register to write to, val=data to write, 1=number of bytes
 	
 	//SETUP_RETR (the setup for "EN_AA")
 	val[0]=0x2F;//0b0010 00011 "2" sets it up to 750uS delay between every retry 
@@ -147,18 +163,17 @@ void nrf24L01_init(void)
 	val[0]=0x01;
 	WriteToNrf(W, EN_RXADDR, val, 1); //enable data pipe 0
  
-    //RF_Adress width setup (how many bytes should RF_Adressen consist of? 1-5 bytes) 
-	//(5bytes safer when there is interference but slower data transmission) 5addr-32data-5addr-32data ....	val[0]=0x03;
-	WriteToNrf(W, SETUP_AW, val, 1); //0b0000 00011 motsvarar 5byte RF_Adress
+    //RF_Adress width setup (how many bytes is the receiver address-the more the merrier 1-5)
+	WriteToNrf(W, SETUP_AW, val, 1); //0b0000 00011  5byte RF_Address
  
-	//RF channel setup - select the frequency from 2.400 to 2.527 GHz 1MHz/steg
+	//RF channel setup - choose freq 2.400-2.527GHz 1MHz/step
 	val[0]=0x01;
 	WriteToNrf(W, RF_CH, val, 1); //RF channel registry 0b0000 0001 = 2.401 GHz (same on the TX RX)
  
-	//RF setup - select power and transmission
+	//RF setup	- choose power mode and data speed 
 	val[0]=0x07;
-	//00000111 bit 3 = "0" produces lower transmission rate 1Mbps = Longer range, bit 2-1 gives power 
-	//high (-0dB) ("11" = (-18dB) gives lower power = more power-efficient, but lower range
+	//00000111 bit 3 = "0" produces lower transmission rate 1Mbps = Longer range
+    // bit 2-1 gives power ("11" = 0dB; "00" = -18dB)
 	WriteToNrf(W, RF_SETUP, val, 1);  
 	
 	//RX RF_Adress setup 5 bytes - choose RF_Adressen on The receiver
@@ -169,11 +184,11 @@ void nrf24L01_init(void)
 		val[i]=0x12;//RF channel registry 0b10101011 x 5 
 		//- writes the same RF_Adress 5 times to get an easy and safe RF_Adress (same on the transmitter chip!)
 	}
-	WriteToNrf(W, RX_ADDR_P0, val, 5); // 0b0010 1010 write registry 
-	//- because we chose pipe 0 in "EN_RXADDR" section above, we give RF_Adressen to this pipe. 
-	//(May cause various RF_Adresser to various pipes and thus listen to different transmitters)
+	WriteToNrf(W, RX_ADDR_P0, val, 5); //write address created in val as RX_address 
+	//since we chose pipe 0, we give RF_Address to this pipe. 
+	//here you can give different addresses to different pipes to listen to several different transmitters
 	
-	//TX RF_Adress setup 5 byte -  choose RF_Adressen on transmitter (can be commented out on a "clean" Reciver)
+	//TX RF_Adress setup 5 byte -  choose RF_Adressen on transmitter (don't need on a receiver)
 	//int i; //reuse previous i
 	for(i=0; i<5; i++)	
 	{
@@ -181,17 +196,16 @@ void nrf24L01_init(void)
 		//to get an easy and safe RF_Adress 
 		//(same on the Receiver chip and the RX-RF_Adressen above if EN_AA enabled!)
 	}
-	WriteToNrf(W, TX_ADDR, val, 5);
+	WriteToNrf(W, TX_ADDR, val, 5);//write same address as TX_Address since EN_AA is enabled
  
-	//Payload width setup - How many bytes will be sent by air? 1-32byte
-	val[0]=dataLen;	//"0b0000 0001" = 1 byte per 5bytes RF_Adress 
-	//(can choose up to "0b00100000" = 32byte/5byte RF_Adress) 
-	//(defined at the top of the global variable!)
+	//Payload width setup - How many bytes will be sent by air? 1-32byte per transmission
+	val[0]=dataLen;	//dataLen is defined earlier (currently 5 bytes)
+	//same on transmitter and receiver
 	WriteToNrf(W, RX_PW_P0, val, 1);
 	
-	//CONFIG reg setup - Now everything is set up, boot up nrf'en and make it either Transmitter lr Reciver
-	val[0]=0x1E;  //0b0000 1110 config registry bit "1": 1 = power up, bit "0": 0 = Transmitter 
-	//(bit "0": 1 = Reciver) (bit "4": 1 => mask_Max_RT, ie IRQ vector will not respond if the transmission failed.
+	//CONFIG reg setup - Now everything is set up, boot up nrf and make it either Transmitter or Reciver
+	val[0]=0x1E;  //0b0000 1110 config registry bit 0=0:transmitter,bit 0=1:receiver,
+	//bit 1=1 power up,bit 4=1: mask_Max_RT i.e. IRQ interrupt isn't triggered if transmission failed
 	WriteToNrf(W, CONFIG, val, 1);
  
 //device need 1.5ms to reach standby mode
@@ -199,17 +213,18 @@ void nrf24L01_init(void)
  
 	//sei();	
 }
+
 /**************************************************************************************************************/
 //receive data
 void receive_payload(void)
 {
-	sei();		//Enable global interrupt
+	//sei();		//Enable global interrupt
 	
 	PORTB |= (1 << 1);	//CE goes high, "listening"
 	_delay_ms(1000);	//Listen for 1 second, interrupt int0 executes
 	PORTB &= ~(1 << 1); //CE goes low, "stop listening"
 	
-	cli();	//Disable global interrupt
+	//cli();	//Disable global interrupt
 }
  
 //Send data
@@ -221,7 +236,7 @@ void transmit_payload(uint8_t * W_buff)
 	WriteToNrf(R, FLUSH_TX, W_buff, 0);
 	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf-one(cannot read w_tx_payload registry!)
 	
-	sei();	//enable global interrupts
+	//sei();	//enable global interrupts
 	//USART_Transmit(GetReg(STATUS));
  
 	_delay_ms(10);		//necessary delay
@@ -234,13 +249,22 @@ void transmit_payload(uint8_t * W_buff)
 }
 /**************************************************************************************************************/
 
-//vector that is triggered when transmit_payload managed to send or 
-//when receive_payload received data NOTE: when Mask_Max_rt is set in the 
-//config register so it will not go off when MAX_RT is was reached on the mailing lodge nmisslyckats!
+void reset(void)//called after a successful data transmission
+{
+	_delay_us(10);
+	PORTB &= ~(1 << 2);//CSN low
+	_delay_us(10);
+	WriteByteSPI(W_REGISTER + STATUS);	//write to status registry
+	_delay_us(10);
+	WriteByteSPI(0b01110000);	//reset all irq in status registry
+	_delay_us(10);
+	PORTB |= (1 << 2);	//CSN back to high, nRF doing nothing
+}
 
-//vector that is triggered when transmit_payload managed to send or when 
-//receive_payload received data NOTE: when Mask_Max_rt is set in the config register 
-//so it will not go off when MAX_RT is was reached on the mailing lodge nmisslyckats!
+/***************************************************************************************************************/
+//When you use interrupt, it is crucial that you enables the external interrupts by the command sei();
+// This should be done before the receive_payload, and transmit_payload is used.
+
 ISR(INT0_vect)
 {
 	cli();	//Disable global interrupt
@@ -262,9 +286,8 @@ ISR(INT0_vect)
 	sei();
 }
 
-/***************************rest of code is not being used*************************************************/
+/****************************************************************************/
 
-/*
 //Read a register on the nRF
 uint8_t GetReg(uint8_t reg)
 {	
@@ -279,6 +302,8 @@ uint8_t GetReg(uint8_t reg)
 	PORTB |= (1 << 2);	//CSN back to high, nRF doing nothing
 	return reg;	// Return the read registry
 }
+
+/***********************************rest of code is not being used****************************************
 //Write to a register on the nRF
 void WriteToNrf(uint8_t reg, uint8_t Package)
 {

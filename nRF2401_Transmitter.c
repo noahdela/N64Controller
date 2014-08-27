@@ -8,13 +8,13 @@
  
 #include <avr/io.h>
 #include <stdio.h>
-#define F_CPU 8000000UL  // 8 MHz
+#define F_CPU 16000000UL  // 16 MHz
 #include <util/delay.h>
 #include <avr/interrupt.h>
  
 #include "nRF24L01.h"
  
-#define dataLen 3  //längd på datapacket som skickas/tas emot
+#define dataLen 3  //length of data packet sent / received
 uint8_t *data;
 uint8_t *arr;
  
@@ -116,12 +116,12 @@ void ioinit(void)
 //när data tas emot/skickas så går interr uptet INT0 näst längst ner igång
 void INT0_interrupt_init(void)	
 {
-	DDRD &= ~(1<<DDD2);	//Extern interrupt på INT0, dvs sätt den till input!
+	DDRD &= ~(1 << DDD2);	//Extern interrupt på INT0, dvs sätt den till input!
 	
-	EICRA |=  (1<<ISC01);// INT0 falling edge	PD2
-	EICRA  &=  ~(1<<ISC00);// INT0 falling edge	PD2
+	EICRA |=  (1 << ISC01);// INT0 falling edge	PD2
+	EICRA  &=  ~(1 << ISC00);// INT0 falling edge	PD2
  
-	EIMSK |=  (1<<INT0);	//enablar int0
+	EIMSK |=  (1 << INT0);	//enablar int0
   	//sei();              // Enable global interrupts görs sen
 } 
  
@@ -195,30 +195,30 @@ void nrf24L01_init(void)
 {
 	_delay_ms(100);	//allow radio to reach power down if shut down
 	
-	uint8_t val[5];	//en array av integers som skickar värden till WriteToNrf-funktionen
+	uint8_t val[5];	//an array of integers to send to writetonrf function
  
-	//EN_AA - (auto-acknowledgements) - Transmittern får svar av recivern att packetet kommit fram, grymt!!! (behöver endast vara enablad på Transmittern!)
-	//Kräver att Transmittern även har satt SAMMA RF_Adress på sin mottagarkanal nedan ex: RX_ADDR_P0 = TX_ADDR
-	val[0]=0x01;	//ger första integern i arrayen "val" ett värde: 0x01=EN_AA på pipe P0. 
-	WriteToNrf(W, EN_AA, val, 1);	//W=ska skriva/ändra nåt i nrfen, EN_AA=vilket register ska ändras, val=en array med 1 till 32 värden  som ska skrivas till registret, 1=antal värden som ska läsas ur "val" arrayen.
+	//EN_AA - (enable auto-acknowledgements) - transmitter gets automatic response from reciever on successful transmit
+	//only works if transmitter has identical rf address on its channel ex: RX_ADDR_P0 = TX_ADDR
+	val[0]=0x01;	//set value
+	WriteToNrf(W, EN_AA, val, 1);	//W=write mode, EN_AA=register to write to, val=data to write, 1=number of bytes
 	
 	//SETUP_RETR (the setup for "EN_AA")
 	val[0]=0x2F;	//0b0010 00011 "2" sets it up to 750uS delay between every retry (at least 500us at 250kbps and if payload >5bytes in 1Mbps, and if payload >15byte in 2Mbps) "F" is number of retries (1-15, now 15)
 	WriteToNrf(W, SETUP_RETR, val, 1);
 	
-	//Väljer vilken/vilka datapipes (0-5) som ska vara igång.
+	//setup the number of enabled data pipes (1-5)
 	val[0]=0x01;
 	WriteToNrf(W, EN_RXADDR, val, 1); //enable data pipe 0
  
-	//RF_Adress width setup (hur många byte ska RF_Adressen bestå av? 1-5 bytes) (5bytes säkrare då det finns störningar men långsammare dataöverföring) 5addr-32data-5addr-32data....
+	//RF_Adress width setup (how many bytes is the receiver address-the more the merrier 1-5)
 	val[0]=0x03;
-	WriteToNrf(W, SETUP_AW, val, 1); //0b0000 00011 motsvarar 5byte RF_Adress
+	WriteToNrf(W, SETUP_AW, val, 1); //0b0000 00011 5byte RF_Adress
  
-	//RF channel setup - väljer frekvens 2,400-2,527GHz 1MHz/steg
+	//RF channel setup - choose freq 2.400-2.527GHz 1MHz/step
 	val[0]=0x01;
-	WriteToNrf(W, RF_CH, val, 1); //RF channel registry 0b0000 0001 = 2,401GHz (samma på TX å RX)
+	WriteToNrf(W, RF_CH, val, 1); //RF channel registry 0b0000 0001 = 2.401GHz (same on TX and RX)
  
-	//RF setup	- väljer effekt och överföringshastighet 
+	//RF setup	- choose power mode and data speed 
 	val[0]=0x07;
 	WriteToNrf(W, RF_SETUP, val, 1); //00000111 bit 3="0" ger lägre överföringshastighet 1Mbps=Längre räckvidd, bit 2-1 ger effektläge hög (-0dB) ("11"=(-18dB) ger lägre effekt =strömsnålare men lägre range)
  
@@ -326,7 +326,7 @@ void transmit_payload(uint8_t * W_buff)
  
 /////////////////////////////////////////////////////
  
-int main(void)
+/*int main(void)
 {
 	clockprescale();
 	usart_init();
@@ -348,7 +348,7 @@ int main(void)
 	}
 	return 0;
 }
- 
+ */
  
  
  
