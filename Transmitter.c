@@ -51,7 +51,7 @@ int main (void)
 	while(1)
 	{
 		transmit_payload(W_Buffer);//repeatedly send data to test if module works
-		_delay_ms(2000);//delay between each transmission
+		_delay_ms(2000);//wait 2 seconds between each transmission
 	}
 	/* if nRF is in receiver mode
 	while(1)
@@ -91,19 +91,19 @@ char WriteByteSPI(unsigned char cData)
 
 void INT0_interrupt_init(void)	
 {
-	DDRD &= ~(1 << DDD2);	//Set pin 4 as input (INT0 pin)
+	DDRD &= ~(1 << DDD2);	//Set PD2 as input (INT0 pin)
 	
-	EICRA |=  (1 << ISC01);// INT0 falling edge	PD2
-	EICRA  &=  ~(1 << ISC00);// INT0 falling edge	PD2
+	EICRA |=  (1 << ISC01);// INT0 falling edge generates request	PD2
+	EICRA  &=  ~(1 << ISC00);// same as above
  
-	EIMSK |=  (1 << INT0);	//enable int0
-  	//sei();
+	EIMSK |=  (1 << INT0);	//enable int0 external interrupt request
+  	sei();// enables global interrupts
 } 
 
 /*****************nrf-setup**************************///Sets the nrf first by sending the register, then the value of the register.
 uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal)	//takes in "ReadWrite" (W or R), "reg" (ett register), "*val" (an array) & "antVal" (number of values in val)
 {
-	cli();	//disable global interrupts
+	cli();	//disable global interrupts so no interrupts can interfere with the write process
 	
 	if (ReadWrite == W)	//W = write to nrf (R= reads it, R_REGISTER (0x00)
 	{
@@ -135,7 +135,7 @@ uint8_t *WriteToNrf(uint8_t ReadWrite, uint8_t reg, uint8_t *val, uint8_t antVal
 	}
 	PORTB |= (1 << 2);	//CSN back to high - nrf chip stops listening
 	
-	sei(); //enable global interrupts
+	sei(); //re-enable global interrupts
 	
 	return ret;	//returns an array
 }
@@ -150,65 +150,69 @@ void nrf24L01_init(void)
 	
 	//EN_AA - (enable auto-acknowledgements) - transmitter gets automatic response from reciever on successful transmit
 	//only works if transmitter has identical rf address on its channel ex: RX_ADDR_P0 = TX_ADDR
-	val[0]=0x01;//gives first integer in the array "choice" one value: 0x01 = EN_AA on pipe P0.
+	val[0]=0x01;//value: 0x01 = EN_AA on pipe 0.
 	WriteToNrf(W, EN_AA, val, 1);//W=write mode, EN_AA=register to write to, val=data to write, 1=number of bytes
 	
-	//SETUP_RETR (the setup for "EN_AA")
-	val[0]=0x2F;//0b0010 00011 "2" sets it up to 750uS delay between every retry 
+	//SETUP_RETR (setup of automatic retransmission)
+	val[0]=0x2F;//2 = 750us between retransmissions
 	//(at least 500us at 250kbps and if payload >5bytes in 1Mbps, and if payload >15byte in 2Mbps)
-    // "F" is number of retries (1-15, now 15)
+    // "F" is number of retries (1-15, F=15 retries = max)
 	WriteToNrf(W, SETUP_RETR, val, 1);
 	
-	//Selects which / what data pipes (0-5) that should be running.
-	val[0]=0x01;
-	WriteToNrf(W, EN_RXADDR, val, 1); //enable data pipe 0
- 
-    //RF_Adress width setup (how many bytes is the receiver address-the more the merrier 1-5)
-	WriteToNrf(W, SETUP_AW, val, 1); //0b0000 00011  5byte RF_Address
+	//Selects data pipes (0-5) that should be running.
+	val[0]=0x01; //enable data pipe 0
+	WriteToNrf(W, EN_RXADDR, val, 1); 
+	
+    //RF_Address width setup (3-5 bytes, "11" = 5 bytes)
+	val[0]=0x03;//0000 0011
+	WriteToNrf(W, SETUP_AW, val, 1);
  
 	//RF channel setup - choose freq 2.400-2.527GHz 1MHz/step
 	val[0]=0x01;
 	WriteToNrf(W, RF_CH, val, 1); //RF channel registry 0b0000 0001 = 2.401 GHz (same on the TX RX)
  
-	//RF setup	- choose power mode and data speed 
-	val[0]=0x07;
-	//00000111 bit 3 = "0" produces lower transmission rate 1Mbps = Longer range
-    // bit 2-1 gives power ("11" = 0dB; "00" = -18dB)
-	WriteToNrf(W, RF_SETUP, val, 1);  
+	//RF setup	- choose signal power and data speed 
+	val[0]=0x07; //0000 0111
+	//bit 0 is don't care
+	//bit 2-1 gives power ("11" = 0dBm; "00" = -18dBm, can also choose -6dBm and -12dBm)
+	//bit 3 and 5 give data speed, 00=1Mbps, 01=2Mbps, 10=250kbps
+	WriteToNrf(W, RF_SETUP, val, 1);//0dBm (max power) and 1Mbps (middle data speed)
 	
-	//RX RF_Adress setup 5 bytes - choose RF_Adressen on The receiver
-	// (Must be given the same RF_Adress if the transmitter has EN_AA turned on!)
+	//RX RF_Address setup 5 bytes - choose RF_Address on The receiver
+	// (Must be given the same RF_Address if the transmitter has EN_AA turned on!)
 	int i;
 	for(i=0; i<5; i++)	
 	{
-		val[i]=0x12;//RF channel registry 0b10101011 x 5 
-		//- writes the same RF_Adress 5 times to get an easy and safe RF_Adress (same on the transmitter chip!)
+		val[i]=0x12;//RF channel registry 0b 0001 0010 x 5 
+		//- writes the same RF_Address 5 times to get an easy and safe RF_Address (same on the transmitter chip!)
 	}
 	WriteToNrf(W, RX_ADDR_P0, val, 5); //write address created in val as RX_address 
 	//since we chose pipe 0, we give RF_Address to this pipe. 
 	//here you can give different addresses to different pipes to listen to several different transmitters
 	
-	//TX RF_Adress setup 5 byte -  choose RF_Adressen on transmitter (don't need on a receiver)
+	//TX RF_Address setup 5 byte-choose RF_Address on transmitter
 	//int i; //reuse previous i
 	for(i=0; i<5; i++)	
 	{
-		val[i]=0x12;	//RF channel registry 0b10111100 x 5 - writes the same RF_Adress 5 times 
+		val[i]=0x12; //RF channel registry 0b 0001 0010 x 5 - writes the same RF_Address 5 times 
 		//to get an easy and safe RF_Adress 
-		//(same on the Receiver chip and the RX-RF_Adressen above if EN_AA enabled!)
+		//(same on the Receiver chip and the RX-RF_Address above if EN_AA enabled!)
 	}
 	WriteToNrf(W, TX_ADDR, val, 5);//write same address as TX_Address since EN_AA is enabled
  
 	//Payload width setup - How many bytes will be sent by air? 1-32byte per transmission
-	val[0]=dataLen;	//dataLen is defined earlier (currently 5 bytes)
+	val[0]=dataLen;	//dataLen is defined earlier (currently 5 (bytes) )
 	//same on transmitter and receiver
-	WriteToNrf(W, RX_PW_P0, val, 1);
+	WriteToNrf(W, RX_PW_P0, val, 1);//RX Payload Width on Pipe 0 = RX_PW_P0
 	
 	//CONFIG reg setup - Now everything is set up, boot up nrf and make it either Transmitter or Reciver
-	val[0]=0x1E;  //0b0000 1110 config registry bit 0=0:transmitter,bit 0=1:receiver,
+	val[0]=0x1E;  //0b 0001 1110 config registry 
+	//bit 0=0:transmitter,bit 0=1:receiver,
 	//bit 1=1 power up,bit 4=1: mask_Max_RT i.e. IRQ interrupt isn't triggered if transmission failed
-	WriteToNrf(W, CONFIG, val, 1);
+	//bits 2-3 CRC encoding scheme(?)
+	WriteToNrf(W, CONFIG, val, 1);//transmitter,power up,CRC enabled 2byte encoding,maskMaxRT 
  
-//device need 1.5ms to reach standby mode
+    //device need 1.5ms to reach standby mode
 	_delay_ms(100);	
  
 	//sei();	
@@ -218,13 +222,13 @@ void nrf24L01_init(void)
 //receive data
 void receive_payload(void)
 {
-	//sei();		//Enable global interrupt
+	sei();		//Enable global interrupt
 	
 	PORTB |= (1 << 1);	//CE goes high, "listening"
 	_delay_ms(1000);	//Listen for 1 second, interrupt int0 executes
 	PORTB &= ~(1 << 1); //CE goes low, "stop listening"
 	
-	//cli();	//Disable global interrupt
+	cli();	//Disable global interrupt
 }
  
 //Send data
@@ -236,7 +240,7 @@ void transmit_payload(uint8_t * W_buff)
 	WriteToNrf(R, FLUSH_TX, W_buff, 0);
 	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf-one(cannot read w_tx_payload registry!)
 	
-	//sei();	//enable global interrupts
+	sei();	//enable global interrupts
 	//USART_Transmit(GetReg(STATUS));
  
 	_delay_ms(10);		//necessary delay
@@ -245,7 +249,7 @@ void transmit_payload(uint8_t * W_buff)
 	PORTB &= ~(1 << 1);	//CE low
 	_delay_ms(10);		//necessary delay
  
-	//cli();	//Disable global interrupt.. 
+	cli();	//Disable global interrupt.. 
 }
 /**************************************************************************************************************/
 
