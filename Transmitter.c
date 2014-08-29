@@ -37,7 +37,7 @@ int main (void)
 	nrf24L01_init();//initalizes the nrF module to our desired specifications(channel,power,data width,TX/RX)
 	
 	PORTC |= (1 << 5);//turn LED on
-	_delay_ms(500);//this is to test LED operation
+	_delay_ms(2000);//this is to test LED operation
 	PORTC &= ~(1 << 5);//turn LED back off
 	
 	uint8_t W_Buffer[5];
@@ -51,7 +51,6 @@ int main (void)
 	while(1)
 	{
 		transmit_payload(W_Buffer);//repeatedly send data to test if module works
-		_delay_ms(2000);//wait 2 seconds between each transmission
 	}
 	/* if nRF is in receiver mode
 	while(1)
@@ -215,33 +214,29 @@ void nrf24L01_init(void)
     //device need 1.5ms to reach standby mode
 	_delay_ms(100);	
  
-	//sei();	
+	sei();	
 }
 
 /**************************************************************************************************************/
 //receive data
 void receive_payload(void)
 {
-	sei();		//Enable global interrupt
+	//sei();		//Enable global interrupt
 	
 	PORTB |= (1 << 1);	//CE goes high, "listening"
 	_delay_ms(1000);	//Listen for 1 second, interrupt int0 executes
 	PORTB &= ~(1 << 1); //CE goes low, "stop listening"
 	
-	cli();	//Disable global interrupt
+	//cli();	//Disable global interrupt
 }
  
 //Send data
 void transmit_payload(uint8_t * W_buff)
 {
-//send 0xE1 which flushes the registry of old data which should not be waiting to be sent when you want to send
-// the new data! R stands for W_REGISTER not be added. sends no command efterråt because it is 
-//not needed! W_buff [] is just there because an array has to be there ..
-	WriteToNrf(R, FLUSH_TX, W_buff, 0);
-	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf-one(cannot read w_tx_payload registry!)
+	WriteToNrf(R, FLUSH_TX, W_buff, 0);//send 0xE1 which flushes the registry of old data 
+	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf
 	
 	sei();	//enable global interrupts
-	//USART_Transmit(GetReg(STATUS));
  
 	_delay_ms(10);		//necessary delay
 	PORTB |= (1 << 1);	//CE high, send data, int0 interrupt
@@ -260,7 +255,7 @@ void reset(void)//called after a successful data transmission
 	_delay_us(10);
 	WriteByteSPI(W_REGISTER + STATUS);	//write to status registry
 	_delay_us(10);
-	WriteByteSPI(0b01110000);	//reset all irq in status registry
+	WriteByteSPI(0x70);	//reset all irq in status registry
 	_delay_us(10);
 	PORTB |= (1 << 2);	//CSN back to high, nRF doing nothing
 }
@@ -274,19 +269,11 @@ ISR(INT0_vect)
 	cli();	//Disable global interrupt
 	PORTB &= ~(1 << 1);//CE back to low-"stop listening/transmitting"
 	
-	PORTC |= (1 << 5);//turn LED on if status is read //led on
-	_delay_ms(500);
+	PORTC |= (1 << 5);//turn LED on to show interrupt was executed
+	_delay_ms(1000);
 	PORTC &= ~(1 << 5); //led off
 	
-	//Receiver function to print out on usart:
-	//data=WriteToNrf(R, R_RX_PAYLOAD, data, dataLen);	//läs ut mottagen data
-	//reset();
-//
-	//for (int i=0;i<dataLen;i++)
-	//{
-		//USART_Transmit(data[i]);
-	//}
-	//
+	reset();
 	sei();
 }
 
