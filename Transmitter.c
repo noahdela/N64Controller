@@ -25,6 +25,65 @@ void reset(void);
 void receive_payload(void);
 void transmit_payload(uint8_t * W_buff);
 uint8_t GetReg(uint8_t reg);
+void ChangeAddress(uint8_t adress)
+{
+	_delay_ms(100);
+	uint8_t val[5];
+	int i;
+	for(i=0; i<5; i++)
+	{
+		val[i]=adress;	//RF channel registry 0b10101011 x 5
+	}
+	WriteToNrf(W, RX_ADDR_P0, val, 5); //0b0010 1010 write registry
+	
+	//TX RF_Adress setup 5 byte
+	for(i=0; i<5; i++)
+	{
+		val[i]=adress;	//RF channel registry 0b10111100 x 5
+	}
+	WriteToNrf(W, TX_ADDR, val, 5);
+	_delay_ms(100);
+}
+
+void USART_interrupt_init(void)
+{
+	UCSR0B |= (1<<RXCIE0);
+}
+void usart_init(void)
+{
+	DDRD |= (1<<1);	//Set TXD (PD1) as output for USART
+	
+	unsigned int USART_BAUDRATE = 9600;		//Same as in "terminal.exe"
+	unsigned int ubrr = (((F_CPU / (USART_BAUDRATE * 8UL))) - 1);	//baud prescale calculated according to F_CPU-define at top
+	
+	/*Set baud rate */
+	UBRR0H = (unsigned char)(ubrr>>8);
+	UBRR0L = (unsigned char)ubrr;
+	
+	/*	Enable receiver and transmitter */
+	UCSR0B = (1<<RXEN0)|(1<<TXEN0);
+ 
+	/* Set frame format: 8data, 2stop bit, The two stop-bits does not seem to make any difference in my case!?*/
+	UCSR0C = (1<<USBS0)|(3<<UCSZ00);
+	
+}
+  
+void USART_Transmit(uint8_t data)
+{
+	/* Wait for empty transmit buffer */
+	while ( !( UCSR0A & (1<<UDRE0)) );
+	/* Put data into buffer, sends the data */
+	UDR0 = data;
+}
+ 
+uint8_t USART_Receive( void )
+{
+	/* Wait for data to be received */
+	while ( !(UCSR0A & (1<<RXC0)) );	//This loop is only needed if you not use the interrupt...
+	
+	/* Get and return received data from buffer */
+	return UDR0; //Return the received byte
+}
 //void WriteToNrf(uint8_t reg, uint8_t Package);
 //void initTimer0(void);
 //======================
@@ -36,21 +95,18 @@ int main (void)
 	INT0_interrupt_init();//INT0 interrupt is triggered when CE pin switches, signals data transfer to nRF
 	nrf24L01_init();//initalizes the nrF module to our desired specifications(channel,power,data width,TX/RX)
 	
-	PORTC |= (1 << 5);//turn LED on
-	_delay_ms(2000);//this is to test LED operation
-	PORTC &= ~(1 << 5);//turn LED back off
+	usart_init();
+	USART_interrupt_init();
 	
-	uint8_t W_Buffer[5];
-	int i;
 	
-	for(i = 0; i < 5; i++)
-		{
-			W_Buffer[i] = 0x0F;
-		}
+	USART_Transmit('N'); // read out the status register
+	USART_Transmit('o'); // read out the status register
+	USART_Transmit('a'); // read out the status register
+	USART_Transmit('h'); // read out the status register
 	
 	while(1)
 	{
-		transmit_payload(W_Buffer);//repeatedly send data to test if module works
+			//let interrupts do all the work**************************************
 	}
 	/* if nRF is in receiver mode
 	while(1)
@@ -96,7 +152,7 @@ void INT0_interrupt_init(void)
 	EICRA  &=  ~(1 << ISC00);// same as above
  
 	EIMSK |=  (1 << INT0);	//enable int0 external interrupt request
-  	sei();// enables global interrupts
+  	//sei();// enables global interrupts
 } 
 
 /*****************nrf-setup**************************///Sets the nrf first by sending the register, then the value of the register.
@@ -214,7 +270,7 @@ void nrf24L01_init(void)
     //device need 1.5ms to reach standby mode
 	_delay_ms(100);	
  
-	sei();	
+	//sei();	
 }
 
 /**************************************************************************************************************/
@@ -244,7 +300,7 @@ void transmit_payload(uint8_t * W_buff)
 	PORTB &= ~(1 << 1);	//CE low
 	_delay_ms(10);		//necessary delay
  
-	cli();	//Disable global interrupt.. 
+	//cli();	//Disable global interrupt.. 
 }
 /**************************************************************************************************************/
 
@@ -264,10 +320,14 @@ void reset(void)//called after a successful data transmission
 //When you use interrupt, it is crucial that you enables the external interrupts by the command sei();
 // This should be done before the receive_payload, and transmit_payload is used.
 
-ISR(INT0_vect)
+ISR(INT0_vect)//this interrupt is triggerred on successful transmission
 {
 	cli();	//Disable global interrupt
 	PORTB &= ~(1 << 1);//CE back to low-"stop listening/transmitting"
+	
+	PORTC |= (1 << 5);//turn LED on to show interrupt was executed
+	_delay_ms(500);
+	PORTC &= ~(1 << 5); //led off
 	
 	PORTC |= (1 << 5);//turn LED on to show interrupt was executed
 	_delay_ms(1000);
@@ -278,6 +338,34 @@ ISR(INT0_vect)
 }
 
 /****************************************************************************/
+
+ISR(USART_RX_vect)	///Vector that triggers when computer sends something to the Atmega88
+{
+	uint8_t W_buffer[dataLen];	//Creates a buffer to receive data with specified length (ex. dataLen = 5 bytes)
+	
+	int i;
+	for (i=0;i<dataLen;i++)
+	{
+		W_buffer[i]=USART_Receive();	//receive the USART
+		USART_Transmit(W_buffer[i]);	//Transmit the Data back to the computer to make sure it was correctly received
+		//This probably should wait until all the bytes is received, but works fine in to send and receive at the same time... =)
+	}
+	
+	reset();
+	
+	if (W_buffer[0]=='9')
+	{
+		ChangeAddress(0x13);
+		transmit_payload(W_buffer);
+		ChangeAddress(0x12);
+	} 
+	else
+	{
+		transmit_payload(W_buffer);
+	}
+	
+	USART_Transmit('#'); 
+}
 
 //Read a register on the nRF
 uint8_t GetReg(uint8_t reg)
