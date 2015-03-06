@@ -100,6 +100,7 @@ int main (void)
 	USART_interrupt_init();
 	
 	/*
+	USART_Transmit(GetReg(STATUS));
     USART_Transmit(GetReg(EN_AA));
 	USART_Transmit(GetReg(SETUP_RETR));
 	USART_Transmit(GetReg(EN_RXADDR));
@@ -310,8 +311,11 @@ void receive_payload(void)
 //Send data
 void transmit_payload(uint8_t * W_buff)
 {
+	USART_Transmit('a');
 	WriteToNrf(R, FLUSH_TX, W_buff, 0);//send 0xE1 which flushes the registry of old data 
+	USART_Transmit('b');
 	WriteToNrf(R, W_TX_PAYLOAD, W_buff, dataLen);//send data in W_buff to nrf
+	USART_Transmit('c');
 	
 	sei();	//enable global interrupts
  
@@ -322,6 +326,7 @@ void transmit_payload(uint8_t * W_buff)
 	_delay_ms(10);		//necessary delay
  
 	cli();	//Disable global interrupt.. 
+	USART_Transmit('d');
 }
 /**************************************************************************************************************/
 
@@ -343,9 +348,11 @@ void reset(void)//called after a successful data transmission
 
 ISR(INT0_vect)//this interrupt is triggerred on successful transmission
 {
+	USART_Transmit('i');
 	cli();	//Disable global interrupt
 	PORTB &= ~(1 << 1);//CE back to low-"stop listening/transmitting"
 	
+	/* if recieve mode...
 	data = WriteToNrf(R, R_RX_PAYLOAD, data, 5);//store recieved message
 	reset();//reset chip for further communication
 	
@@ -354,8 +361,9 @@ ISR(INT0_vect)//this interrupt is triggerred on successful transmission
 	{
 		USART_Transmit(data[i]);//send recieved data to computer via usart
 	}
+	*/
 	
-	PORTC |= (1<<5);
+	PORTC |= (1<<5); //blink LED to show success
 	_delay_ms(500);
 	PORTC &= ~(1<<5);
 	
@@ -383,12 +391,14 @@ ISR(USART_RX_vect)	///Vector that triggers when computer sends something to the 
 		ChangeAddress(0x13);
 		transmit_payload(W_buffer);
 		ChangeAddress(0x12);
+		USART_Transmit('1');
 	} 
 	else
 	{
 		transmit_payload(W_buffer);
+		USART_Transmit('2');
 	}
-	
+
 	USART_Transmit('#'); 
 }
 
