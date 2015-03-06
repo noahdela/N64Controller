@@ -12,7 +12,7 @@
 
 #include "nRF24L01.h"
 
-#define dataLen 5  //length of data packet sent / received # of bytes
+#define dataLen 1  //length of data packet sent / received # of bytes
 
 uint8_t *data; //random array for storage
 //Define functions
@@ -124,6 +124,8 @@ int main (void)
 		USART_Transmit(W_buffer[i]);
 	}
 	*/
+	
+	reset();
 	
 	while(1)
 	{
@@ -352,12 +354,14 @@ ISR(INT0_vect)//this interrupt is triggerred on successful transmission
 	cli();	//Disable global interrupt
 	PORTB &= ~(1 << 1);//CE back to low-"stop listening/transmitting"
 	
+	reset();
+	
 	/* if recieve mode...
 	data = WriteToNrf(R, R_RX_PAYLOAD, data, 5);//store recieved message
 	reset();//reset chip for further communication
 	
 	int i;
-	for (i=0;i<5;i++)
+	for (i=0;i<dataLen;i++)
 	{
 		USART_Transmit(data[i]);//send recieved data to computer via usart
 	}
@@ -384,22 +388,26 @@ ISR(USART_RX_vect)	///Vector that triggers when computer sends something to the 
 		//This probably should wait until all the bytes is received, but works fine in to send and receive at the same time... =)
 	}
 
-	reset();
+	if (W_buffer[0] == 's')
+	{
+		USART_Transmit(GetReg(STATUS));
+	}
+	if (W_buffer[0] == 'f')
+	{
+		USART_Transmit(GetReg(FIFO_STATUS));
+	}
 	
 	if (W_buffer[0]=='9')
 	{
 		ChangeAddress(0x13);
 		transmit_payload(W_buffer);
 		ChangeAddress(0x12);
-		USART_Transmit('1');
 	} 
 	else
 	{
 		transmit_payload(W_buffer);
-		USART_Transmit('2');
 	}
 
-	USART_Transmit('#'); 
 }
 
 //Read a register on the nRF
